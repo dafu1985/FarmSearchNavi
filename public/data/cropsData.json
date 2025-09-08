@@ -1,0 +1,34 @@
+{
+  "北海道": [
+    { "name": "じゃがいも", "season": "春", "category": "野菜" },
+    { "name": "にんじん", "season": "春", "category": "野菜" },
+    { "name": "ほうれんそう", "season": "春", "category": "野菜" },
+    { "name": "だいこん", "season": "春", "category": "野菜" },
+    { "name": "トマト", "season": "春", "category": "野菜" },
+    { "name": "きゅうり", "season": "春", "category": "野菜" },
+    { "name": "ナス", "season": "春", "category": "野菜" }
+  ],
+  "新潟県": [
+    { "name": "米", "season": "秋", "category": "穀物" },
+    { "name": "小麦", "season": "夏", "category": "穀物" },
+    { "name": "大豆", "season": "秋", "category": "穀物" },
+    { "name": "じゃがいも", "season": "夏", "category": "野菜" },
+    { "name": "にんじん", "season": "夏", "category": "野菜" },
+    { "name": "ほうれんそう", "season": "春", "category": "野菜" },
+    { "name": "キャベツ", "season": "春", "category": "野菜" },
+    { "name": "だいこん", "season": "秋", "category": "野菜" },
+    { "name": "トマト", "season": "夏", "category": "野菜" },
+    { "name": "きゅうり", "season": "夏", "category": "野菜" },
+    { "name": "ナス", "season": "夏", "category": "野菜" },
+    { "name": "枝豆", "season": "夏", "category": "野菜" },
+    { "name": "スイカ", "season": "夏", "category": "果物" },
+    { "name": "メロン", "season": "夏", "category": "果物" },
+    { "name": "りんご", "season": "秋", "category": "果物" },
+    { "name": "梨", "season": "秋", "category": "果物" },
+    { "name": "ぶどう", "season": "秋", "category": "果物" }
+  ],
+  "沖縄県": [
+    { "name": "さとうきび", "season": "冬", "category": "穀物" },
+    { "name": "マンゴー", "season": "夏", "category": "果物" }
+  ]
+}
