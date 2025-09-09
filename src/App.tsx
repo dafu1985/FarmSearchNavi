@@ -1,43 +1,62 @@
 // App.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 
 import TopPage from "./topPage";
 import FarmSearch from "./farmSearch";
 import DetailFarm from "./detailFarm";
-// import CropCalendar from "./CropCalendar";
+import NewCreate from "./newCreate";
+
+// 追加品種の型
+export type AddedVariety = {
+  variety: string;
+  sowing: string;
+  nursery: string;
+  harvest: string;
+};
+
+// キー形式: `${pref}__${crop}`
+const makeKey = (pref: string, crop: string) => `${pref}__${crop}`;
 
 function App() {
+  // 追加品種を保持する共有 state（親に置く）
+  const [addedVarieties, setAddedVarieties] = useState<
+    Record<string, AddedVariety[]>
+  >({});
+
+  // NewCreate から呼ばれる登録関数
+  const addVariety = (pref: string, crop: string, item: AddedVariety) => {
+    const key = makeKey(pref, crop);
+    setAddedVarieties((prev) => ({
+      ...prev,
+      [key]: [...(prev[key] ?? []), item],
+    }));
+  };
+
+  // DetailFarm が参照するための取得関数
+  const getAdded = (pref: string, crop: string): AddedVariety[] => {
+    return addedVarieties[makeKey(pref, crop)] ?? [];
+  };
+
   return (
-    <>
-      {/* <CropCalendar />; */}
-      {/* 簡易ナビバー */}
-      {/* <AppBar position="static"> */}
-      {/* <Toolbar> */}
-      {/* <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          農作物ナビ
-        </Typography> */}
-      {/* Linkを使って画面遷移 */}
-      {/* <Button color="inherit" component={Link} to="/">
-          トップ
-        </Button> */}
-      {/* </Toolbar> */}
-      {/* </AppBar> */}
-      {/* 画面切り替え部分 */}
-      <Box sx={{ p: 2 }}>
-        <Routes>
-          {/* トップ画面 */}
-          <Route path="/" element={<TopPage />} />
+    <Box sx={{ p: 2 }}>
+      <Routes>
+        <Route path="/" element={<TopPage />} />
+        <Route path="/search" element={<FarmSearch />} />
 
-          {/* 検索画面 */}
-          <Route path="/search" element={<FarmSearch />} />
+        {/* props を受け取るコンポーネントに関数を渡す */}
+        <Route
+          path="/detail/:cropName/:prefName"
+          element={<DetailFarm getAdded={getAdded} />}
+        />
 
-          {/* 詳細画面 */}
-          <Route path="/detail/:cropName/:prefName" element={<DetailFarm />} />
-        </Routes>
-      </Box>
-    </>
+        <Route
+          path="/newCreate"
+          element={<NewCreate addVariety={addVariety} />}
+        />
+      </Routes>
+    </Box>
   );
 }
 

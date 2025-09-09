@@ -26,6 +26,7 @@ type Crop = {
   category: string;
   sowing?: { start: number; end: number };
   harvest?: { start: number; end: number };
+  hasDetail?: boolean;
 };
 
 const itemsPerPage = 5;
@@ -226,16 +227,32 @@ function FarmSearch() {
                 <Typography variant="body2" color="text.secondary">
                   {crop.season ?? "-"}・{crop.category}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  sx={{ mt: 1 }}
-                  onClick={() =>
-                    navigate(`/detail/${crop.name}/${selectedPref}`)
-                  }
-                >
-                  詳細
-                </Button>
+                {/* ボタン制御 */}
+                <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={!crop.hasDetail}
+                    onClick={() =>
+                      navigate(`/detail/${crop.name}/${selectedPref}`)
+                    }
+                  >
+                    詳細
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    size="small"
+                    disabled={!!crop.hasDetail}
+                    onClick={() =>
+                      navigate("/newCreate", {
+                        state: { cropName: crop.name, prefName: selectedPref },
+                      })
+                    }
+                  >
+                    新規作成
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           ))}

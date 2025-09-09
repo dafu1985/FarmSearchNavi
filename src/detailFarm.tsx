@@ -11,13 +11,16 @@ import {
   AccordionDetails,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import type { AddedVariety } from "./App"; // App.tsx の型を import
 
+// 作物の詳細データ型
 type CropDetail = {
   sowing: string;
   nursery: string;
   harvest: string;
 };
 
+// 作物データ型
 type CropData = {
   varieties: string[];
   details: Record<string, CropDetail>;
@@ -25,40 +28,69 @@ type CropData = {
   category: string;
 };
 
-// 日本語名 → ファイル名の対応表（コンポーネント外に出す）
+// 日本語県名 → JSONファイル名の対応表
 const prefMap: Record<string, string> = {
   北海道: "hokkaido",
   新潟県: "niigata",
 };
 
-//メインコンポーネント
-function DetailFarm() {
+// DetailFarm の Props 型
+type DetailFarmProps = {
+  getAdded: (pref: string, crop: string) => AddedVariety[];
+};
+
+// メインコンポーネント
+function DetailFarm({ getAdded }: DetailFarmProps) {
   const { cropName, prefName } = useParams<{
     cropName: string;
     prefName: string;
   }>();
-
   const navigate = useNavigate();
+
+  // JSONデータ＋追加品種をマージした結果を保持
   const [cropData, setCropData] = useState<Record<string, CropData> | null>(
     null
   );
   const [loading, setLoading] = useState(true);
 
-  //　詳細データの取得
+  // 詳細データ取得＋追加品種をマージ
   useEffect(() => {
-    console.log("prefName:", prefName, "cropName:", cropName);
     if (prefName && cropName) {
       const prefKey = prefMap[prefName];
-      console.log("prefKey:", prefKey);
-      if (!prefKey) return setLoading(false);
+      if (!prefKey) {
+        setLoading(false);
+        return;
+      }
 
       fetch(`/data/${prefKey}Crops.json`)
-        .then((res) => {
-          console.log("res.ok", res.ok);
-          return res.json();
-        })
+        .then((res) => res.json())
         .then((data) => {
-          console.log("data", data);
+          // 新規登録された追加品種を取得
+          const added = getAdded(prefName, cropName);
+
+          // JSON に該当作物が存在しない場合は空データ作成
+          // if (!data[cropName])
+          //   data[cropName] = {
+          //     varieties: [],
+          //     details: {},
+          //     season: "",
+          //     category: "",
+          //   };
+
+          // JSON データに追加品種をマージ
+          added.forEach((v) => {
+            // すでに存在する品種名は追加しない
+            if (!data[cropName].varieties.includes(v.variety)) {
+              data[cropName].varieties.push(v.variety);
+            }
+
+            data[cropName].details[v.variety] = {
+              sowing: v.sowing,
+              nursery: v.nursery,
+              harvest: v.harvest,
+            };
+          });
+
           setCropData(data);
         })
         .catch((err) => {
@@ -67,7 +99,7 @@ function DetailFarm() {
         })
         .finally(() => setLoading(false));
     }
-  }, [prefName, cropName]);
+  }, [prefName, cropName, getAdded]);
 
   if (loading) return <div>Loading...</div>;
   if (!cropData) return <div>データが読み込めませんでした</div>;
@@ -76,7 +108,6 @@ function DetailFarm() {
 
   const cropInfo = cropData[cropName];
   const varieties = cropInfo.varieties;
-
   //　画面描画
   return (
     <Box sx={{ p: 3 }}>
@@ -90,6 +121,7 @@ function DetailFarm() {
           borderRadius: 2,
         }}
       >
+        {/* 作物名と県名 */}
         <Typography variant="h4" gutterBottom>
           {cropName}
         </Typography>
@@ -97,6 +129,38 @@ function DetailFarm() {
           {prefName} の代表的な品種
         </Typography>
 
+        {/* 新規作成ボタン */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "50px",
+            mb: "-20px",
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              position: "relative",
+              top: "-50px",
+              color: "orange",
+              borderColor: "orange",
+              "&:hover": {
+                backgroundColor: "orange",
+                color: "white",
+                borderColor: "orange",
+              },
+            }}
+            onClick={() =>
+              navigate("/newCreate", { state: { cropName, prefName } })
+            }
+          >
+            新規作成
+          </Button>
+        </Box>
+
+        {/* 品種ごとのカード表示 */}
         {varieties.map((v, i) => {
           const details = cropInfo.details[v];
           return (
@@ -149,6 +213,7 @@ function DetailFarm() {
           );
         })}
 
+        {/* 戻るボタン */}
         <Box
           sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
         >
