@@ -1,48 +1,120 @@
-import React from "react";
+import React, { useState } from "react";
+import { ReactComponent as JapanSvg } from "./assets/jp.svg";
+import rawPrefMap from "./prefMap.json";
+
+// JSONの型を明示して、TSで安全に参照できるようにする
+const prefMap: Record<string, string> = rawPrefMap;
 
 interface JapanMapProps {
-  selectedPref: string;
+  selectedPref: string | null;
   onPrefClick: (pref: string) => void;
 }
 
-interface Prefecture {
-  pref: string;
-  d: string;
+// 都道府県ごとの地域区分
+const regionMap: Record<string, string> = {
+  北海道: "冷涼地",
+  青森県: "冷涼地",
+  岩手県: "冷涼地",
+  秋田県: "冷涼地",
+  山形県: "冷涼地",
+  福島県: "冷涼地",
+  長野県: "冷涼地",
+  宮城県: "中間地",
+  茨城県: "中間地",
+  栃木県: "中間地",
+  群馬県: "中間地",
+  埼玉県: "中間地",
+  千葉県: "中間地",
+  東京都: "中間地",
+  神奈川県: "中間地",
+  新潟県: "中間地",
+  富山県: "中間地",
+  石川県: "中間地",
+  福井県: "中間地",
+  山梨県: "中間地",
+  岐阜県: "中間地",
+  静岡県: "中間地",
+  愛知県: "中間地",
+  三重県: "中間地",
+  滋賀県: "中間地",
+  京都府: "中間地",
+  大阪府: "中間地",
+  兵庫県: "中間地",
+  奈良県: "中間地",
+  和歌山県: "中間地",
+  鳥取県: "中間地",
+  島根県: "中間地",
+  岡山県: "中間地",
+  広島県: "中間地",
+  山口県: "中間地",
+  徳島県: "中間地",
+  香川県: "中間地",
+  愛媛県: "中間地",
+  高知県: "中間地",
+  福岡県: "中間地",
+  佐賀県: "中間地",
+  長崎県: "中間地",
+  熊本県: "中間地",
+  大分県: "中間地",
+  宮崎県: "暖地",
+  鹿児島県: "暖地",
+  沖縄県: "暖地",
+};
+
+// 色分けロジック
+function getPrefColor(
+  pref: string,
+  hoveredPref: string | null,
+  selectedPref: string | null
+): string {
+  if (selectedPref === pref) return "#FF69B4"; // 選択中 → ピンク
+  if (hoveredPref === pref) {
+    const zone = regionMap[pref];
+    if (zone === "冷涼地") return "#87CEFA"; // 水色
+    if (zone === "中間地") return "#98FB98"; // 薄緑
+    if (zone === "暖地") return "#FFDAB9"; // 薄オレンジ
+  }
+  const zone = regionMap[pref];
+  if (zone === "冷涼地") return "#5CACEE"; // 濃い水色
+  if (zone === "中間地") return "#66CD66"; // 濃い緑
+  if (zone === "暖地") return "#FF8C42"; // 濃いオレンジ
+  return "#D3D3D3"; // その他（未定義）
 }
 
-// サンプルの都道府県データ
-const prefectures: Prefecture[] = [
-  { pref: "北海道", d: "M 559.03 223.35 560.9 224.27 ..." },
-  { pref: "青森県", d: "M 791.85 341.77 793.4 341.88 ..." },
-];
+function JapanMap({ selectedPref, onPrefClick }: JapanMapProps) {
+  const [hoveredPref, setHoveredPref] = useState<string | null>(null);
 
-const JapanMap: React.FC<JapanMapProps> = ({ selectedPref, onPrefClick }) => {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="800"
-      height="691"
-      viewBox="0 0 800 691"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <g id="ne_10m_admin_1_states_provinces">
-        {prefectures.map((pref, i) => (
-          <path
-            key={i}
-            d={pref.d}
-            fill={selectedPref === pref.pref ? "#FF6347" : "#B0C4DE"}
-            stroke="#000"
-            strokeWidth={0.5}
-            fillRule="evenodd"
-            onClick={() => onPrefClick(pref.pref)}
-          >
-            <title>{pref.pref}</title>
-          </path>
-        ))}
-      </g>
-    </svg>
+    <div style={{ width: "100%", height: "100%" }}>
+      <JapanSvg
+        style={{ width: "100%", height: "100%", cursor: "pointer" }}
+        onClick={(e: React.MouseEvent<SVGElement, MouseEvent>) => {
+          const code = (e.target as SVGElement).id; // JP01〜JP47
+          const pref = prefMap[code];
+          if (pref) onPrefClick(pref);
+        }}
+        onMouseOver={(e: React.MouseEvent<SVGElement, MouseEvent>) => {
+          const code = (e.target as SVGElement).id;
+          const pref = prefMap[code];
+          if (pref) setHoveredPref(pref);
+        }}
+        onMouseOut={() => setHoveredPref(null)}
+      />
+
+      <style>
+        {Object.keys(prefMap)
+          .map((code) => {
+            const pref = prefMap[code];
+            return `#${code} { fill: ${getPrefColor(
+              pref,
+              hoveredPref,
+              selectedPref
+            )}; transition: fill 0.2s ease; }`;
+          })
+          .join("\n")}
+      </style>
+    </div>
   );
-};
+}
 
 export default JapanMap;

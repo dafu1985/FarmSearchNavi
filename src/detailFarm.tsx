@@ -68,14 +68,13 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
           // 新規登録された追加品種を取得
           const added = getAdded(prefName, cropName);
 
-          // JSON に該当作物が存在しない場合は空データ作成
-          // if (!data[cropName])
-          //   data[cropName] = {
-          //     varieties: [],
-          //     details: {},
-          //     season: "",
-          //     category: "",
-          //   };
+          //jsonにcropがない場合→からデータを作らずSkip
+          let cropdata = data[cropName] || {
+            varieties: [],
+            details: {},
+            season: "",
+            category: "",
+          };
 
           // JSON データに追加品種をマージ
           added.forEach((v) => {
@@ -85,7 +84,7 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
             }
 
             data[cropName].details[v.variety] = {
-              sowing: v.sowing,
+              sowing: "",
               nursery: v.nursery,
               harvest: v.harvest,
             };
@@ -95,7 +94,25 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
         })
         .catch((err) => {
           console.error(err);
-          setCropData(null);
+          const added = getAdded(prefName, cropName);
+          if (added.length > 0) {
+            const tempData = {
+              [cropName]: {
+                varieties: added.map((v) => v.variety),
+                details: Object.fromEntries(
+                  added.map((v) => [
+                    v.variety,
+                    { sowing: "", nursery: v.nursery, harvest: v.harvest },
+                  ])
+                ),
+                season: "",
+                category: "",
+              },
+            };
+            setCropData(tempData);
+          } else {
+            setCropData(null);
+          }
         })
         .finally(() => setLoading(false));
     }

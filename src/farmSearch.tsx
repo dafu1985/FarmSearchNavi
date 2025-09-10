@@ -10,8 +10,12 @@ import {
   Card,
   CardContent,
   FormHelperText,
+  Drawer,
+  IconButton,
 } from "@mui/material";
 import { useNavigate } from "react-router";
+import CloseIcon from "@mui/icons-material/Close";
+import JapanMap from "./japanMap";
 
 type PulldownData = {
   prefectures: string[];
@@ -32,6 +36,8 @@ type Crop = {
 const itemsPerPage = 5;
 
 function FarmSearch() {
+  // ドロワーの開閉状態
+  const [open, setOpen] = useState(false);
   // 選択状態
   const [selectedPref, setSelectedPref] = useState(""); // 都道府県
   const [selectedSeason, setSelectedSeason] = useState(""); // 季節
@@ -72,6 +78,10 @@ function FarmSearch() {
       .then((data) => setPulldown(data));
   }, []);
 
+  // 地図上で都道府県を選択したときの処理
+  const handlePrefClick = (pref: string) => {
+    setSelectedPref(pref);
+  };
   // 検索処理
   const handleSearch = async () => {
     if (!selectedPref) {
@@ -131,6 +141,46 @@ function FarmSearch() {
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         農作物検索アプリ
       </Typography>
+      <>
+        {/* Mapボタン */}
+        <Button variant="outlined" onClick={() => setOpen(true)}>
+          Map
+        </Button>
+
+        {/* MUIのDrawer（右側からスライドイン） */}
+        <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
+          <div
+            style={{
+              width: "40vw", // 画面幅の70%
+              padding: 16,
+              height: "100vh",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3>都道府県検索</h3>
+              <IconButton onClick={() => setOpen(false)}>
+                <CloseIcon />
+              </IconButton>
+            </div>
+
+            <div style={{ marginTop: 16, flexGrow: 1 }}>
+              <JapanMap
+                selectedPref={selectedPref}
+                onPrefClick={handlePrefClick}
+              />
+            </div>
+          </div>
+        </Drawer>
+      </>
 
       {/* 検索条件カード */}
       <Card sx={{ p: 3, mb: 3, backgroundColor: "#e8f5e9" }}>
