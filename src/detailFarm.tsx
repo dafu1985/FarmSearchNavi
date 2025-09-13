@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -69,12 +69,12 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
           const added = getAdded(prefName, cropName);
 
           //jsonにcropがない場合→からデータを作らずSkip
-          let cropdata = data[cropName] || {
-            varieties: [],
-            details: {},
-            season: "",
-            category: "",
-          };
+          // let cropdata = data[cropName] || {
+          //   varieties: [],
+          //   details: {},
+          //   season: "",
+          //   category: "",
+          // };
 
           // JSON データに追加品種をマージ
           added.forEach((v) => {

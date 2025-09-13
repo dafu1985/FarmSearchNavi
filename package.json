@@ -13,16 +13,15 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
     "react-router": "^7.8.2",
-    "react-router-dom": "^7.8.2",
+    "react-router-dom": "^6.30.1",
     "react-scripts": "5.0.1",
     "recharts": "^3.1.2",
-    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -50,16 +49,18 @@
     ]
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/react-router-dom": "^5.3.3",
     "@types/recharts": "^2.0.1",
-    "jest": "^27.5.1"
+    "babel-jest": "^30.1.2",
+    "jest": "^27.5.1",
+    "typescript": "^4.9.5"
   },
-  "jest": {
-    "displayName": "Ecommerce",
-    "globals": {
-      "PROJECT_NAME": "Ecommerce TD"
-    },
-    "bail": 20,
-    "verbose": true
+  "overrides": {
+    "react-router-dom": {
+      "sourceMap": false
+    }
   }
-
 }

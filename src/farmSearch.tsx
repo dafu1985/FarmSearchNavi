@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   Box,
   Typography,
@@ -13,9 +15,19 @@ import {
   Drawer,
   IconButton,
 } from "@mui/material";
-import { useNavigate } from "react-router";
 import CloseIcon from "@mui/icons-material/Close";
 import JapanMap from "./japanMap";
+
+// useNavigateを安全にインポート（テスト環境でモック可能）
+// let useNavigate: () => (path: string, options?: any) => void;
+// try {
+//   // 本番環境
+//   // eslint-disable-next-line @typescript-eslint/no-var-requires
+//   useNavigate = require("react-router-dom").useNavigate;
+// } catch (e) {
+//   // テスト環境ではモック
+//   useNavigate = () => () => {};
+// }
 
 type PulldownData = {
   prefectures: string[];
@@ -36,38 +48,27 @@ type Crop = {
 const itemsPerPage = 5;
 
 function FarmSearch() {
-  // ドロワーの開閉状態
   const [open, setOpen] = useState(false);
-  // 選択状態
-  const [selectedPref, setSelectedPref] = useState(""); // 都道府県
-  const [selectedSeason, setSelectedSeason] = useState(""); // 季節
-  const [selectedCategory, setSelectedCategory] = useState(""); // カテゴリ
-
-  // 結果
+  const [selectedPref, setSelectedPref] = useState("");
+  const [selectedSeason, setSelectedSeason] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [results, setResults] = useState<Crop[]>([]);
-  const [prefError, setPrefError] = useState(false); // 都道府県未選択エラー
+  const [prefError, setPrefError] = useState(false);
   const [searched, setSearched] = useState(false);
-
-  // ページング
   const [currentPage, setCurrentPage] = useState(1);
   const [pagedResults, setPagedResults] = useState<Crop[]>([]);
   const [displayStart, setDisplayStart] = useState(0);
   const [displayEnd, setDisplayEnd] = useState(0);
-
-  // プルダウン
   const [pulldown, setPulldown] = useState<PulldownData>({
     prefectures: [],
     seasons: [],
     categories: [],
     months: [],
   });
-
-  // 都道府県→地域マップ
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
 
   const navigate = useNavigate();
 
-  // 初期表示時にプルダウンデータと地域マップを取得
   useEffect(() => {
     fetch("/data/regionMap.json")
       .then((res) => res.json())
@@ -78,11 +79,8 @@ function FarmSearch() {
       .then((data) => setPulldown(data));
   }, []);
 
-  // 地図上で都道府県を選択したときの処理
-  const handlePrefClick = (pref: string) => {
-    setSelectedPref(pref);
-  };
-  // 検索処理
+  const handlePrefClick = (pref: string) => setSelectedPref(pref);
+
   const handleSearch = async () => {
     if (!selectedPref) {
       setPrefError(true);
@@ -92,7 +90,7 @@ function FarmSearch() {
     }
 
     try {
-      const res = await fetch("/data/cropsData.json"); // JSON のパス
+      const res = await fetch("/data/cropsData.json");
       const data: Record<string, Crop[]> = await res.json();
 
       let filtered = data[selectedPref] || [];
@@ -113,7 +111,6 @@ function FarmSearch() {
     }
   };
 
-  // クリア処理
   const handleClear = () => {
     setSelectedPref("");
     setSelectedSeason("");
@@ -124,7 +121,6 @@ function FarmSearch() {
     setCurrentPage(1);
   };
 
-  // ページング処理
   useEffect(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(currentPage * itemsPerPage, results.length);
@@ -141,55 +137,50 @@ function FarmSearch() {
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         農作物検索アプリ
       </Typography>
-      <>
-        {/* Mapボタン */}
-        <Button variant="outlined" onClick={() => setOpen(true)}>
-          Map
-        </Button>
 
-        {/* MUIのDrawer（右側からスライドイン） */}
-        <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
+      <Button variant="outlined" onClick={() => setOpen(true)}>
+        Map
+      </Button>
+
+      <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
+        <div
+          style={{
+            width: "40vw",
+            padding: 16,
+            height: "100vh",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <div
             style={{
-              width: "40vw", // 画面幅の70%
-              padding: 16,
-              height: "100vh",
-              boxSizing: "border-box",
               display: "flex",
-              flexDirection: "column",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h3>都道府県検索</h3>
-              <IconButton onClick={() => setOpen(false)}>
-                <CloseIcon />
-              </IconButton>
-            </div>
-
-            <div style={{ marginTop: 16, flexGrow: 1 }}>
-              <JapanMap
-                selectedPref={selectedPref}
-                onPrefClick={handlePrefClick}
-              />
-            </div>
+            <h3>都道府県検索</h3>
+            <IconButton onClick={() => setOpen(false)}>
+              <CloseIcon />
+            </IconButton>
           </div>
-        </Drawer>
-      </>
 
-      {/* 検索条件カード */}
+          <div style={{ marginTop: 16, flexGrow: 1 }}>
+            <JapanMap
+              selectedPref={selectedPref}
+              onPrefClick={handlePrefClick}
+            />
+          </div>
+        </div>
+      </Drawer>
+
       <Card sx={{ p: 3, mb: 3, backgroundColor: "#e8f5e9" }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             検索条件
           </Typography>
 
-          {/* 都道府県 */}
           <FormControl sx={{ minWidth: 240, mb: 3 }}>
             <InputLabel>都道府県</InputLabel>
             <Select
@@ -215,7 +206,6 @@ function FarmSearch() {
             )}
           </FormControl>
 
-          {/* 季節 */}
           <FormControl sx={{ minWidth: 240, mb: 3, ml: 2 }}>
             <InputLabel>季節</InputLabel>
             <Select
@@ -230,7 +220,6 @@ function FarmSearch() {
             </Select>
           </FormControl>
 
-          {/* カテゴリ */}
           <FormControl sx={{ minWidth: 240, mb: 3, ml: 2 }}>
             <InputLabel>カテゴリ</InputLabel>
             <Select
@@ -247,7 +236,6 @@ function FarmSearch() {
         </CardContent>
       </Card>
 
-      {/* ボタン */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
         <Button variant="outlined" color="secondary" onClick={handleClear}>
           クリア
@@ -257,8 +245,6 @@ function FarmSearch() {
         </Button>
       </Box>
 
-      {/* 検索結果 */}
-      <br />
       {searched && (
         <Card sx={{ p: 3, mb: 3, backgroundColor: "#e8f5e9" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
@@ -277,7 +263,6 @@ function FarmSearch() {
                 <Typography variant="body2" color="text.secondary">
                   {crop.season ?? "-"}・{crop.category}
                 </Typography>
-                {/* ボタン制御 */}
                 <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <Button
                     variant="outlined"
@@ -289,7 +274,6 @@ function FarmSearch() {
                   >
                     詳細
                   </Button>
-
                   <Button
                     variant="contained"
                     size="small"
@@ -307,7 +291,6 @@ function FarmSearch() {
             </Card>
           ))}
 
-          {/* ページング */}
           {totalPages > 1 && (
             <Box
               sx={{
