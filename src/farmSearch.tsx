@@ -9,12 +9,14 @@ import {
   Select,
   MenuItem,
   Button,
+  Grid,
   Card,
   CardContent,
   FormHelperText,
   Drawer,
   IconButton,
 } from "@mui/material";
+
 import CloseIcon from "@mui/icons-material/Close";
 import JapanMap from "./japanMap";
 
@@ -133,7 +135,7 @@ function FarmSearch() {
   const currentItemsCount = pagedResults.length;
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: 4, flexDirection: { xs: "column", md: "row" } }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         農作物検索アプリ
       </Typography>
@@ -181,58 +183,68 @@ function FarmSearch() {
             検索条件
           </Typography>
 
-          <FormControl sx={{ minWidth: 240, mb: 3 }}>
-            <InputLabel>都道府県</InputLabel>
-            <Select
-              value={selectedPref}
-              onChange={(e) => {
-                setSelectedPref(e.target.value);
-                setPrefError(false);
-              }}
-            >
-              {pulldown.prefectures.map((pref) => (
-                <MenuItem key={pref} value={pref}>
-                  {pref}
-                </MenuItem>
-              ))}
-            </Select>
-            {prefError && (
-              <FormHelperText error>都道府県を選択してください</FormHelperText>
-            )}
-            {selectedPref && regionMap[selectedPref] && (
-              <Typography sx={{ color: "red", mt: 1 }}>
-                {regionMap[selectedPref]}
-              </Typography>
-            )}
-          </FormControl>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>都道府県</InputLabel>
+                <Select
+                  value={selectedPref}
+                  onChange={(e) => {
+                    setSelectedPref(e.target.value);
+                    setPrefError(false);
+                  }}
+                >
+                  {pulldown.prefectures.map((pref) => (
+                    <MenuItem key={pref} value={pref}>
+                      {pref}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {prefError && (
+                  <FormHelperText error>
+                    都道府県を選択してください
+                  </FormHelperText>
+                )}
+                {selectedPref && regionMap[selectedPref] && (
+                  <Typography sx={{ color: "red", mt: 1 }}>
+                    {regionMap[selectedPref]}
+                  </Typography>
+                )}
+              </FormControl>
+            </Grid>
 
-          <FormControl sx={{ minWidth: 240, mb: 3, ml: 2 }}>
-            <InputLabel>季節</InputLabel>
-            <Select
-              value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
-            >
-              {pulldown.seasons.map((season) => (
-                <MenuItem key={season} value={season}>
-                  {season}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>季節</InputLabel>
+                <Select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  {pulldown.seasons.map((season) => (
+                    <MenuItem key={season} value={season}>
+                      {season}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
 
-          <FormControl sx={{ minWidth: 240, mb: 3, ml: 2 }}>
-            <InputLabel>カテゴリ</InputLabel>
-            <Select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              {pulldown.categories.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>カテゴリ</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  {pulldown.categories.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
