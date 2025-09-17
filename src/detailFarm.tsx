@@ -16,6 +16,7 @@ import type { AddedVariety } from "./App"; // App.tsx の型を import
 // 作物の詳細データ型
 type CropDetail = {
   sowing: string;
+  character: string; //特徴
   nursery: string;
   harvest: string;
 };
@@ -84,7 +85,8 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
             }
 
             data[cropName].details[v.variety] = {
-              sowing: "",
+              sowing: v.sowing,
+              character: v.character,
               nursery: v.nursery,
               harvest: v.harvest,
             };
@@ -102,7 +104,12 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
                 details: Object.fromEntries(
                   added.map((v) => [
                     v.variety,
-                    { sowing: "", nursery: v.nursery, harvest: v.harvest },
+                    {
+                      sowing: v.sowing,
+                      character: v.character,
+                      nursery: v.nursery,
+                      harvest: v.harvest,
+                    },
                   ])
                 ),
                 season: "",
@@ -197,6 +204,15 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
 
                 {details && (
                   <>
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography>品種の特徴</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography>{details.character}</Typography>
+                      </AccordionDetails>
+                    </Accordion>
+
                     <Accordion>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Typography>種植え時期</Typography>

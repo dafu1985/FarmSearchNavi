@@ -11,6 +11,7 @@ import NewCreate from "./newCreate";
 // 追加品種の型
 export type AddedVariety = {
   variety: string;
+  character: string;
   sowing: string;
   nursery: string;
   harvest: string;

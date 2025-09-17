@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 type AddedVariety = {
   id: number;
   variety: string;
+  character: string;
   sowing: string;
   nursery: string;
   harvest: string;
@@ -37,6 +38,7 @@ function NewCreate({ addVariety }: NewCreateProps) {
   const [open, setOpen] = useState(false); // ダイアログの開閉状態
   const [formData, setFormData] = useState({
     variety: "",
+    character: "",
     sowing: "",
     nursery: "",
     harvest: "",
@@ -58,6 +60,7 @@ function NewCreate({ addVariety }: NewCreateProps) {
   const handleClear = () => {
     setFormData({
       variety: "",
+      character: "",
       sowing: "",
       nursery: "",
       harvest: "",
@@ -71,13 +74,19 @@ function NewCreate({ addVariety }: NewCreateProps) {
   // 登録実行
   const handleRegister = () => {
     // 入力値が空かどうか判定
-    if (!formData.variety || !formData.nursery || !formData.harvest) {
+    if (
+      !formData.variety ||
+      !formData.character ||
+      !formData.nursery ||
+      !formData.harvest
+    ) {
       setErrorMessage("空白の項目があるため登録できません");
     } else {
       // プロトタイプなので仮IDを作る
       const newVariety: AddedVariety = {
         id: Date.now(),
         variety: formData.variety,
+        character: formData.character,
         sowing: formData.sowing,
         nursery: formData.nursery,
         harvest: formData.harvest,
@@ -123,6 +132,14 @@ function NewCreate({ addVariety }: NewCreateProps) {
               name="variety"
               placeholder="例: コシヒカリ"
               value={formData.variety}
+              onChange={handleChange}
+              fullWidth
+            />
+            <TextField
+              label="品種の特徴"
+              name="character"
+              placeholder="例: 程よい粘り気と甘さ"
+              value={formData.character}
               onChange={handleChange}
               fullWidth
             />
@@ -208,6 +225,7 @@ function NewCreate({ addVariety }: NewCreateProps) {
             <DialogContent>
               <Typography>この内容で登録しますか？</Typography>
               <Typography>品種名: {formData.variety}</Typography>
+              <Typography>品種の特徴: {formData.character}</Typography>
               <Typography>種植え時期: {formData.sowing}</Typography>
               <Typography>育苗方法: {formData.nursery}</Typography>
               <Typography>収穫時期: {formData.harvest}</Typography>
