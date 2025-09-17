@@ -87,9 +87,16 @@ function JapanMap({ selectedPref, onPrefClick }: JapanMapProps) {
   return (
     <div style={{ width: "100%", height: "100%" }}>
       <JapanSvg
-        style={{ width: "100%", height: "100%", cursor: "pointer" }}
+        style={{
+          width: "100%",
+          height: "auto",
+          minHeight: "300px", // スマホでも最低限の高さ
+          maxHeight: "70vh", // 画面高さの7割まで
+          cursor: "pointer",
+        }}
+        preserveAspectRatio="xMidYMid meet"
         onClick={(e: React.MouseEvent<SVGElement, MouseEvent>) => {
-          const code = (e.target as SVGElement).id; // JP01〜JP47
+          const code = (e.target as SVGElement).id;
           const pref = prefMap[code];
           if (pref) onPrefClick(pref);
         }}
