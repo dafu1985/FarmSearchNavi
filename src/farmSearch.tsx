@@ -40,7 +40,7 @@ type PulldownData = {
 
 type Crop = {
   name: string;
-  season?: string;
+  season: string;
   category: string;
   sowing?: { start: number; end: number };
   harvest?: { start: number; end: number };
@@ -97,7 +97,8 @@ function FarmSearch() {
 
       let filtered = data[selectedPref] || [];
       if (selectedSeason)
-        filtered = filtered.filter((c) => c.season === selectedSeason);
+        filtered = filtered.filter((c) => c.season.includes(selectedSeason));
+
       if (selectedCategory)
         filtered = filtered.filter((c) => c.category === selectedCategory);
 
