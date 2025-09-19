@@ -23,15 +23,21 @@ type AddedVariety = {
 };
 
 type NewCreateProps = {
-  addVariety: (pref: string, crop: string, item: AddedVariety) => void;
+  addVariety: (prefName: string, cropName: string, item: AddedVariety) => void;
+  addCrop: (
+    prefName: string,
+    cropName: string,
+    season: string,
+    category: string
+  ) => void; // 追加
 };
 
-function NewCreate({ addVariety }: NewCreateProps) {
+function NewCreate({ addVariety, addCrop }: NewCreateProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const existingCropName = location.state?.cropName || "";
-  const prefName = location.state?.prefName || "未選択";
+  const prefName = location.state?.prefName || "";
 
   const [cropNameInput, setCropNameInput] = useState(existingCropName);
   const [formData, setFormData] = useState({
@@ -71,6 +77,14 @@ function NewCreate({ addVariety }: NewCreateProps) {
 
   const handleRegister = () => {
     const cropNameToUse = existingCropName || cropNameInput;
+    if (!cropNameToUse) {
+      setErrorMessage("作物名を入力してください");
+      return;
+    }
+    if (!prefName || prefName === "未選択") {
+      setErrorMessage("都道府県を選択してください");
+      return;
+    }
     const newVariety: AddedVariety = {
       id: Date.now(),
       variety: formData.variety,
@@ -81,6 +95,8 @@ function NewCreate({ addVariety }: NewCreateProps) {
     };
 
     addVariety(prefName, cropNameToUse, newVariety);
+    // 作物自体も追加
+    addCrop(prefName, cropNameToUse, "-", "-");
     setConfirmOpen(false);
     setSuccessPopupOpen(true);
   };
@@ -98,7 +114,7 @@ function NewCreate({ addVariety }: NewCreateProps) {
   };
 
   const handleGoToSearch = () => {
-    navigate("/search");
+    navigate("/search", { state: { prefName } });
   };
 
   return (

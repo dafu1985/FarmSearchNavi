@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import {
   Box,
@@ -20,16 +20,17 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import JapanMap from "./japanMap";
 
-// useNavigateを安全にインポート（テスト環境でモック可能）
-// let useNavigate: () => (path: string, options?: any) => void;
-// try {
-//   // 本番環境
-//   // eslint-disable-next-line @typescript-eslint/no-var-requires
-//   useNavigate = require("react-router-dom").useNavigate;
-// } catch (e) {
-//   // テスト環境ではモック
-//   useNavigate = () => () => {};
-// }
+// props で追加作物を受け取る
+type Crop = {
+  cropName: string;
+  name: string;
+  season: string;
+  category: string;
+  prefName: string; // 都道府県
+  sowing?: { start: number; end: number };
+  harvest?: { start: number; end: number };
+  hasDetail?: boolean;
+};
 
 type PulldownData = {
   prefectures: string[];
@@ -38,20 +39,17 @@ type PulldownData = {
   months: number[];
 };
 
-type Crop = {
-  name: string;
-  season: string;
-  category: string;
-  sowing?: { start: number; end: number };
-  harvest?: { start: number; end: number };
-  hasDetail?: boolean;
-};
-
 const itemsPerPage = 5;
 
-function FarmSearch() {
+type Props = {
+  addedCrops: Crop[];
+};
+
+function FarmSearch({ addedCrops }: Props) {
   const [open, setOpen] = useState(false);
-  const [selectedPref, setSelectedPref] = useState("");
+  const location = useLocation();
+  const initialPref = location.state?.prefName || "";
+  const [selectedPref, setSelectedPref] = useState(initialPref);
   const [selectedSeason, setSelectedSeason] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [results, setResults] = useState<Crop[]>([]);
@@ -95,7 +93,15 @@ function FarmSearch() {
       const res = await fetch("/data/cropsData.json");
       const data: Record<string, Crop[]> = await res.json();
 
+      // json からのデータ
       let filtered = data[selectedPref] || [];
+
+      // 新規追加分を同じ都道府県にマージ
+      const added = addedCrops.filter((c) => c.prefName === selectedPref);
+      console.log("マージされる追加作物:", added);
+      filtered = [...filtered, ...added];
+
+      // フィルタリング
       if (selectedSeason)
         filtered = filtered.filter((c) => c.season.includes(selectedSeason));
 
@@ -106,6 +112,7 @@ function FarmSearch() {
       setPrefError(false);
       setSearched(true);
       setCurrentPage(1);
+      console.log("マージされる追加作物:", added); // 確認用
     } catch (error) {
       console.error("作物データの取得に失敗しました", error);
       setResults([]);
@@ -135,12 +142,31 @@ function FarmSearch() {
   const totalPages = Math.ceil(results.length / itemsPerPage);
   const currentItemsCount = pagedResults.length;
 
+  useEffect(() => {
+    if (selectedPref) {
+      // 選択中の都道府県に追加された作物のみを取得
+      const added = addedCrops.filter((c) => c.prefName === selectedPref);
+
+      // JSON からのデータとマージ（元の results も保持する場合）
+      setResults((prev) => {
+        // prev の中で同じ作物が重複していたら除外
+        const filteredPrev = prev.filter(
+          (r) => !added.some((a) => a.name === r.name)
+        );
+        return [...filteredPrev, ...added];
+      });
+
+      // ページングも更新
+      setCurrentPage(1);
+    }
+  }, [addedCrops, selectedPref]);
+
+  //画面描画
   return (
     <Box sx={{ p: 4, flexDirection: { xs: "column", md: "row" } }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         農作物検索
       </Typography>
-
       <Button variant="outlined" onClick={() => setOpen(true)}>
         Map
       </Button>
