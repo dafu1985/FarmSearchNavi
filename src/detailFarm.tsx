@@ -164,7 +164,7 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
         >
           <Button
             variant="outlined"
-            size="small"
+            size="medium"
             sx={{
               position: "relative",
               top: "-50px",

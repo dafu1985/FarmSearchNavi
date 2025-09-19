@@ -49,7 +49,7 @@ function TopPage() {
           variant="h5"
           sx={{ mb: 5, textShadow: "1px 1px 3px rgba(0,0,0,0.7)" }}
         >
-          旬の作物や品種情報を簡単にチェック
+          旬の作物や品種情報、種まき時期、収穫時期を簡単にチェック
         </Typography>
         <Button
           variant="contained"

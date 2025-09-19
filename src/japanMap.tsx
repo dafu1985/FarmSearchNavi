@@ -83,6 +83,10 @@ function getPrefColor(
 
 function JapanMap({ selectedPref, onPrefClick }: JapanMapProps) {
   const [hoveredPref, setHoveredPref] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -105,6 +109,9 @@ function JapanMap({ selectedPref, onPrefClick }: JapanMapProps) {
           const pref = prefMap[code];
           if (pref) setHoveredPref(pref);
         }}
+        onMouseMove={(e: React.MouseEvent<SVGElement, MouseEvent>) => {
+          setMousePos({ x: e.clientX, y: e.clientY });
+        }}
         onMouseOut={() => setHoveredPref(null)}
       />
 
@@ -120,6 +127,26 @@ function JapanMap({ selectedPref, onPrefClick }: JapanMapProps) {
           })
           .join("\n")}
       </style>
+
+      {/* ツールチップ */}
+      {hoveredPref && (
+        <div
+          style={{
+            position: "fixed", // マウスに追従するため固定配置
+            top: mousePos.y + 20,
+            left: mousePos.x + 20,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            color: "white",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            pointerEvents: "none", // ツールチップにマウスが反応しないようにする
+            whiteSpace: "nowrap",
+          }}
+        >
+          {hoveredPref}
+        </div>
+      )}
     </div>
   );
 }

@@ -24,18 +24,16 @@ type AddedVariety = {
 
 type NewCreateProps = {
   addVariety: (pref: string, crop: string, item: AddedVariety) => void;
-  cropName?: string;
-  prefName?: string;
 };
 
-//メインコンポーネント
 function NewCreate({ addVariety }: NewCreateProps) {
-  const navigate = useNavigate(); // ← ここでフックを呼ぶ
+  const navigate = useNavigate();
   const location = useLocation();
-  // location.state から cropName と prefName を取得（存在しない場合は "未選択" にフォールバック）
-  const cropName = location.state?.cropName || "未選択";
+
+  const existingCropName = location.state?.cropName || "";
   const prefName = location.state?.prefName || "未選択";
-  const [open, setOpen] = useState(false); // ダイアログの開閉状態
+
+  const [cropNameInput, setCropNameInput] = useState(existingCropName);
   const [formData, setFormData] = useState({
     variety: "",
     character: "",
@@ -43,37 +41,21 @@ function NewCreate({ addVariety }: NewCreateProps) {
     nursery: "",
     harvest: "",
   });
-  const [successMessage, setSuccessMessage] = useState(""); // 登録完了メッセージ
-  const [errorMessage, setErrorMessage] = useState(""); // エラーメッセージ
 
-  // 入力値を管理
+  const [confirmOpen, setConfirmOpen] = useState(false); // 登録確認ダイアログ
+  const [successPopupOpen, setSuccessPopupOpen] = useState(false); // 登録完了ポップアップ
+  const [errorMessage, setErrorMessage] = useState("");
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 登録ボタンクリック時
-  const handleOpenDialog = () => {
-    setOpen(true);
-  };
-
-  // クリア処理
-  const handleClear = () => {
-    setFormData({
-      variety: "",
-      character: "",
-      sowing: "",
-      nursery: "",
-      harvest: "",
-    });
-  };
-  // キャンセル（閉じる）
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  // 登録実行
-  const handleRegister = () => {
-    // 入力値が空かどうか判定
+  const handleOpenConfirm = () => {
+    const cropNameToUse = existingCropName || cropNameInput;
+    if (!cropNameToUse) {
+      setErrorMessage("作物名を入力してください");
+      return;
+    }
     if (
       !formData.variety ||
       !formData.character ||
@@ -81,33 +63,44 @@ function NewCreate({ addVariety }: NewCreateProps) {
       !formData.harvest
     ) {
       setErrorMessage("空白の項目があるため登録できません");
-    } else {
-      // プロトタイプなので仮IDを作る
-      const newVariety: AddedVariety = {
-        id: Date.now(),
-        variety: formData.variety,
-        character: formData.character,
-        sowing: formData.sowing,
-        nursery: formData.nursery,
-        harvest: formData.harvest,
-      };
-
-      // 親コンポーネントの状態に追加
-      addVariety(prefName, cropName, newVariety);
-      // 詳細画面に遷移
-      navigate(`/detail/${cropName}/${prefName}`);
-      // 登録処理
-      setSuccessMessage("新しい品種を登録しました");
+      return;
     }
-    setOpen(false);
-    // TODO: 実際の登録処理(API連携など)をここに書く
-
-    // 任意: 数秒後に消す
-    setTimeout(() => setSuccessMessage(""), 4000);
-    setTimeout(() => setErrorMessage(""), 4000);
+    setErrorMessage("");
+    setConfirmOpen(true);
   };
 
-  //画面描画
+  const handleRegister = () => {
+    const cropNameToUse = existingCropName || cropNameInput;
+    const newVariety: AddedVariety = {
+      id: Date.now(),
+      variety: formData.variety,
+      character: formData.character,
+      sowing: formData.sowing,
+      nursery: formData.nursery,
+      harvest: formData.harvest,
+    };
+
+    addVariety(prefName, cropNameToUse, newVariety);
+    setConfirmOpen(false);
+    setSuccessPopupOpen(true);
+  };
+
+  const handleAddAnother = () => {
+    setFormData({
+      variety: "",
+      character: "",
+      sowing: "",
+      nursery: "",
+      harvest: "",
+    });
+    if (!existingCropName) setCropNameInput("");
+    setSuccessPopupOpen(false);
+  };
+
+  const handleGoToSearch = () => {
+    navigate("/search");
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Card
@@ -121,16 +114,25 @@ function NewCreate({ addVariety }: NewCreateProps) {
         }}
       >
         <CardContent>
-          {/* 選択中の作物名 */}
-          <Typography variant="h5" gutterBottom>
-            作物名: {cropName}
-          </Typography>
-
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+            {!existingCropName && (
+              <TextField
+                label="作物名"
+                placeholder="例: 米"
+                value={cropNameInput}
+                onChange={(e) => setCropNameInput(e.target.value)}
+                fullWidth
+              />
+            )}
+            {existingCropName && (
+              <Typography variant="h5" gutterBottom>
+                作物名: {existingCropName}
+              </Typography>
+            )}
+
             <TextField
               label="品種名"
               name="variety"
-              placeholder="例: コシヒカリ"
               value={formData.variety}
               onChange={handleChange}
               fullWidth
@@ -138,7 +140,6 @@ function NewCreate({ addVariety }: NewCreateProps) {
             <TextField
               label="品種の特徴"
               name="character"
-              placeholder="例: 程よい粘り気と甘さ"
               value={formData.character}
               onChange={handleChange}
               fullWidth
@@ -146,7 +147,6 @@ function NewCreate({ addVariety }: NewCreateProps) {
             <TextField
               label="種植え時期"
               name="sowing"
-              placeholder="例: 3月下旬〜4月上旬"
               value={formData.sowing}
               onChange={handleChange}
               fullWidth
@@ -154,7 +154,6 @@ function NewCreate({ addVariety }: NewCreateProps) {
             <TextField
               label="育苗方法"
               name="nursery"
-              placeholder="例: セルトレイ育苗"
               value={formData.nursery}
               onChange={handleChange}
               fullWidth
@@ -162,97 +161,90 @@ function NewCreate({ addVariety }: NewCreateProps) {
             <TextField
               label="収穫時期"
               name="harvest"
-              placeholder="例: 9月下旬〜10月上旬"
               value={formData.harvest}
               onChange={handleChange}
               fullWidth
             />
           </Box>
 
-          {successMessage && (
-            <Box
-              sx={{
-                position: "fixed",
-                top: "5%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                bgcolor: "white",
-                border: "2px solid #4caf50", // 緑枠
-                borderRadius: 2,
-                p: 4,
-                boxShadow: 3,
-                zIndex: 1300,
-                textAlign: "center",
-                minWidth: 300,
-                color: "#4caf50", // 緑文字
-                fontWeight: "bold",
-              }}
-            >
-              <Typography variant="h6" color="success.main">
-                {successMessage}
-              </Typography>
-            </Box>
-          )}
-
           {errorMessage && (
-            <Box
-              sx={{
-                position: "fixed",
-                top: "5%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                bgcolor: "white",
-                border: "2px solid #f44336", // 赤枠
-                borderRadius: 2,
-                p: 4,
-                boxShadow: 3,
-                zIndex: 1300,
-                textAlign: "center",
-                minWidth: 300,
-                color: "#f44336", // 赤文字
-                fontWeight: "bold",
-              }}
-            >
-              <Typography variant="h6" color="error.main">
-                {errorMessage}
-              </Typography>
-            </Box>
+            <Typography color="error" sx={{ mt: 2 }}>
+              {errorMessage}
+            </Typography>
           )}
 
-          {/* 登録確認ダイアログ */}
-          <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>登録確認</DialogTitle>
-            <DialogContent>
-              <Typography>この内容で登録しますか？</Typography>
-              <Typography>品種名: {formData.variety}</Typography>
-              <Typography>品種の特徴: {formData.character}</Typography>
-              <Typography>種植え時期: {formData.sowing}</Typography>
-              <Typography>育苗方法: {formData.nursery}</Typography>
-              <Typography>収穫時期: {formData.harvest}</Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleClose} color="secondary">
-                キャンセル
-              </Button>
-              <Button
-                onClick={handleRegister}
-                color="primary"
-                variant="contained"
-              >
-                登録
-              </Button>
-            </DialogActions>
-          </Dialog>
+          <Box
+            sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
+          >
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() =>
+                setFormData({
+                  variety: "",
+                  character: "",
+                  sowing: "",
+                  nursery: "",
+                  harvest: "",
+                })
+              }
+            >
+              クリア
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenConfirm}
+            >
+              登録
+            </Button>
+          </Box>
         </CardContent>
       </Card>
-      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
-        <Button variant="outlined" color="secondary" onClick={handleClear}>
-          クリア
-        </Button>
-        <Button variant="contained" color="primary" onClick={handleOpenDialog}>
-          登録
-        </Button>
-      </Box>
+
+      {/* 登録確認ダイアログ */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>登録確認</DialogTitle>
+        <DialogContent>
+          <Typography>作物名: {existingCropName || cropNameInput}</Typography>
+          <Typography>品種名: {formData.variety}</Typography>
+          <Typography>品種の特徴: {formData.character}</Typography>
+          <Typography>種植え時期: {formData.sowing}</Typography>
+          <Typography>育苗方法: {formData.nursery}</Typography>
+          <Typography>収穫時期: {formData.harvest}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} color="secondary">
+            キャンセル
+          </Button>
+          <Button onClick={handleRegister} color="primary" variant="contained">
+            登録
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 登録完了ポップアップ */}
+      <Dialog
+        open={successPopupOpen}
+        onClose={() => setSuccessPopupOpen(false)}
+      >
+        <DialogTitle>登録完了</DialogTitle>
+        <DialogContent>
+          <Typography>新しい品種を登録しました！</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleAddAnother}
+            color="primary"
+            variant="contained"
+          >
+            続けて登録
+          </Button>
+          <Button onClick={handleGoToSearch} color="secondary">
+            検索画面へ戻る
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

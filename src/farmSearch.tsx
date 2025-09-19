@@ -138,7 +138,7 @@ function FarmSearch() {
   return (
     <Box sx={{ p: 4, flexDirection: { xs: "column", md: "row" } }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        農作物検索アプリ
+        農作物検索
       </Typography>
 
       <Button variant="outlined" onClick={() => setOpen(true)}>
@@ -269,6 +269,22 @@ function FarmSearch() {
               </Typography>
             )}
           </Box>
+          <Box
+            sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}
+          >
+            <Button
+              variant="contained"
+              size="medium"
+              onClick={() =>
+                navigate("/newCreate", {
+                  state: { prefName: selectedPref },
+                })
+              }
+              sx={{ position: "relative", top: "-50px" }}
+            >
+              新規作成
+            </Button>
+          </Box>
 
           {pagedResults.map((crop, i) => (
             <Card key={i} sx={{ my: 1, p: 2, backgroundColor: "#f1f8e9" }}>
@@ -280,7 +296,7 @@ function FarmSearch() {
                 <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                   <Button
                     variant="outlined"
-                    size="small"
+                    size="medium"
                     disabled={!crop.hasDetail}
                     onClick={() =>
                       navigate(`/detail/${crop.name}/${selectedPref}`)
@@ -290,7 +306,7 @@ function FarmSearch() {
                   </Button>
                   <Button
                     variant="contained"
-                    size="small"
+                    size="medium"
                     disabled={!!crop.hasDetail}
                     onClick={() =>
                       navigate("/newCreate", {
@@ -319,7 +335,7 @@ function FarmSearch() {
                   <Button
                     key={page}
                     variant={currentPage === page ? "contained" : "outlined"}
-                    size="small"
+                    size="medium"
                     onClick={() => setCurrentPage(page)}
                   >
                     {page}
