@@ -117,6 +117,26 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
     navigate("/search", { state: { prefName } });
   };
 
+  // クリア処理
+  const handleClear = () => {
+    setFormData({
+      variety: "",
+      character: "",
+      sowing: "",
+      nursery: "",
+      harvest: "",
+    });
+    setErrorMessage(""); // エラーメッセージをクリア
+
+    // 既存作物名がないときだけ作物名をクリア
+    if (!existingCropName) {
+      setCropNameInput("");
+    }
+
+    setConfirmOpen(false); // 確認ダイアログを閉じる
+    setSuccessPopupOpen(false); // 成功ポップアップも閉じる
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Card
@@ -192,21 +212,12 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
           <Box
             sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
           >
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={() =>
-                setFormData({
-                  variety: "",
-                  character: "",
-                  sowing: "",
-                  nursery: "",
-                  harvest: "",
-                })
-              }
-            >
+            {/* クリアボタン */}
+            <Button variant="outlined" color="secondary" onClick={handleClear}>
               クリア
             </Button>
+
+            {/* 登録ボタン */}
             <Button
               variant="contained"
               color="primary"
