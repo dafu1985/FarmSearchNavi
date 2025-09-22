@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  MenuItem,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -41,12 +42,21 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
 
   const [cropNameInput, setCropNameInput] = useState(existingCropName);
   const [formData, setFormData] = useState({
+    season: "",
+    category: "",
     variety: "",
     character: "",
     sowing: "",
     nursery: "",
     harvest: "",
   });
+  // state追加
+  const [season, setSeason] = useState("");
+  const [category, setCategory] = useState("");
+
+  // プルダウンの候補
+  const seasonOptions = ["春", "夏", "秋", "冬"];
+  const categoryOptions = ["葉菜類", "根菜類", "果菜類", "穀類", "豆類"];
 
   const [confirmOpen, setConfirmOpen] = useState(false); // 登録確認ダイアログ
   const [successPopupOpen, setSuccessPopupOpen] = useState(false); // 登録完了ポップアップ
@@ -96,13 +106,15 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
 
     addVariety(prefName, cropNameToUse, newVariety);
     // 作物自体も追加
-    addCrop(prefName, cropNameToUse, "-", "-");
+    addCrop(prefName, cropNameToUse, season, category);
     setConfirmOpen(false);
     setSuccessPopupOpen(true);
   };
 
   const handleAddAnother = () => {
     setFormData({
+      season: "",
+      category: "",
       variety: "",
       character: "",
       sowing: "",
@@ -120,6 +132,8 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
   // クリア処理
   const handleClear = () => {
     setFormData({
+      season: "",
+      category: "",
       variety: "",
       character: "",
       sowing: "",
@@ -165,7 +179,37 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
                 作物名: {existingCropName}
               </Typography>
             )}
+            {!existingCropName && (
+              <TextField
+                select
+                label="季節"
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                fullWidth
+              >
+                {seasonOptions.map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {s}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
 
+            {!existingCropName && (
+              <TextField
+                select
+                label="分類"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                fullWidth
+              >
+                {categoryOptions.map((c) => (
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               label="品種名"
               name="variety"
@@ -234,6 +278,7 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
         <DialogTitle>登録確認</DialogTitle>
         <DialogContent>
           <Typography>作物名: {existingCropName || cropNameInput}</Typography>
+
           <Typography>品種名: {formData.variety}</Typography>
           <Typography>品種の特徴: {formData.character}</Typography>
           <Typography>種植え時期: {formData.sowing}</Typography>
