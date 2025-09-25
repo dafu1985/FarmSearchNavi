@@ -9,14 +9,23 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { AddedVariety } from "./App"; // App.tsx の型を import
+import { db } from "./firebase/firebase"; // Firebase 利用フラグと db
+import { doc, getDoc } from "firebase/firestore";
+
+// Firebase利用フラグ（true: Firebase, false: JSONファイル）
+const USE_FIREBASE = false;
 
 // 作物の詳細データ型
 type CropDetail = {
   sowing: string;
-  character: string; //特徴
+  character: string; // 特徴
   nursery: string;
   harvest: string;
 };
@@ -48,81 +57,80 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
   }>();
   const navigate = useNavigate();
 
+  const [confirmOpen, setConfirmOpen] = useState(false); // 戻り先ダイアログ
   // JSONデータ＋追加品種をマージした結果を保持
   const [cropData, setCropData] = useState<Record<string, CropData> | null>(
     null
   );
   const [loading, setLoading] = useState(true);
 
-  // 詳細データ取得＋追加品種をマージ
   useEffect(() => {
-    if (prefName && cropName) {
-      const prefKey = prefMap[prefName];
-      if (!prefKey) {
-        setLoading(false);
-        return;
-      }
+    if (!prefName || !cropName) return;
 
-      fetch(`/data/${prefKey}Crops.json`)
-        .then((res) => res.json())
-        .then((data) => {
-          // 新規登録された追加品種を取得
-          const added = getAdded(prefName, cropName);
-
-          //jsonにcropがない場合→からデータを作らずSkip
-          // let cropdata = data[cropName] || {
-          //   varieties: [],
-          //   details: {},
-          //   season: "",
-          //   category: "",
-          // };
-
-          // JSON データに追加品種をマージ
-          added.forEach((v) => {
-            // すでに存在する品種名は追加しない
-            if (!data[cropName].varieties.includes(v.variety)) {
-              data[cropName].varieties.push(v.variety);
-            }
-
-            data[cropName].details[v.variety] = {
-              sowing: v.sowing,
-              character: v.character,
-              nursery: v.nursery,
-              harvest: v.harvest,
-            };
-          });
-
-          setCropData(data);
-        })
-        .catch((err) => {
-          console.error(err);
-          const added = getAdded(prefName, cropName);
-          if (added.length > 0) {
-            const tempData = {
-              [cropName]: {
-                varieties: added.map((v) => v.variety),
-                details: Object.fromEntries(
-                  added.map((v) => [
-                    v.variety,
-                    {
-                      sowing: v.sowing,
-                      character: v.character,
-                      nursery: v.nursery,
-                      harvest: v.harvest,
-                    },
-                  ])
-                ),
-                season: "",
-                category: "",
-              },
-            };
-            setCropData(tempData);
-          } else {
-            setCropData(null);
-          }
-        })
-        .finally(() => setLoading(false));
+    const prefKey = prefMap[prefName];
+    if (!prefKey) {
+      setLoading(false);
+      return;
     }
+
+    const fetchData = async () => {
+      try {
+        let data: Record<string, CropData> = {};
+
+        if (USE_FIREBASE) {
+          // 🔹 Firebase 本番環境から取得
+          const docRef = doc(db, "crops", `${prefName}_${cropName}`);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            data[cropName] = docSnap.data() as CropData;
+          } else {
+            data[cropName] = {
+              varieties: [],
+              details: {},
+              season: "",
+              category: "",
+            };
+          }
+        } else {
+          // 🔹 開発環境: JSON ファイルから取得
+          const res = await fetch(`/data/${prefKey}Crops.json`);
+          const jsonData = await res.json();
+          if (jsonData[cropName]) {
+            data[cropName] = jsonData[cropName];
+          } else {
+            data[cropName] = {
+              varieties: [],
+              details: {},
+              season: "",
+              category: "",
+            };
+          }
+        }
+
+        // 🔹 追加品種をマージ
+        const added = getAdded(prefName, cropName);
+        added.forEach((v) => {
+          if (!data[cropName].varieties.includes(v.variety)) {
+            data[cropName].varieties.push(v.variety);
+          }
+          data[cropName].details[v.variety] = {
+            sowing: v.sowing,
+            character: v.character,
+            nursery: v.nursery,
+            harvest: v.harvest,
+          };
+        });
+
+        setCropData(data);
+      } catch (err) {
+        console.error(err);
+        setCropData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [prefName, cropName, getAdded]);
 
   if (loading) return <div>Loading...</div>;
@@ -132,7 +140,7 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
 
   const cropInfo = cropData[cropName];
   const varieties = cropInfo.varieties;
-  //　画面描画
+
   return (
     <Box sx={{ p: 3 }}>
       <Card
@@ -245,15 +253,36 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
             </Card>
           );
         })}
-
         {/* 戻るボタン */}
         <Box
           sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
         >
-          <Button variant="outlined" onClick={() => navigate(-1)}>
+          <Button
+            variant="outlined"
+            onClick={() => setConfirmOpen(true)} // ← 直接 navigate せず、ダイアログを開く
+          >
             戻る
           </Button>
         </Box>
+
+        {/* 登録確認ダイアログ */}
+        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+          <DialogTitle>戻り先選択</DialogTitle>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setConfirmOpen(false); // ダイアログを閉じる
+                navigate("/search"); // 検索画面に遷移
+              }}
+              color="secondary"
+            >
+              検索画面
+            </Button>
+            <Button variant="outlined" onClick={() => navigate(-1)}>
+              1つ前
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Card>
     </Box>
   );

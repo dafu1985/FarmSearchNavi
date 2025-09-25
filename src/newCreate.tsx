@@ -105,6 +105,7 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
     };
 
     addVariety(prefName, cropNameToUse, newVariety);
+
     // 作物自体も追加
     addCrop(prefName, cropNameToUse, season, category);
     setConfirmOpen(false);
@@ -256,6 +257,9 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
           <Box
             sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}
           >
+            <Button variant="outlined" onClick={() => navigate(-1)}>
+              戻る
+            </Button>
             {/* クリアボタン */}
             <Button variant="outlined" color="secondary" onClick={handleClear}>
               クリア

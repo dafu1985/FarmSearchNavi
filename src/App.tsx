@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "./firebase/firebase"; // Firebase 利用フラグと db
 
 import TopPage from "./topPage";
 import FarmSearch from "./farmSearch";
 import DetailFarm from "./detailFarm";
 import NewCreate from "./newCreate";
+// import { seedCrops } from "./seedCrops";
 
 export type AddedVariety = {
   id: number;
@@ -27,26 +30,42 @@ export type Crop = {
   hasDetail?: boolean;
 };
 
-// 作物キー生成
+// 作物キー生成（ローカルstate用）
 const makeKey = (pref: string, crop: string) => `${pref}__${crop}`;
-
+const handleDeleteCrops = async (ids: string[]) => {
+  // Firestore削除 or ローカル配列更新処理を書く
+  console.log("削除対象ID:", ids);
+};
 function App() {
+  useEffect(() => {}, []);
+
   const [addedVarieties, setAddedVarieties] = useState<
     Record<string, AddedVariety[]>
   >({});
   const [addedCrops, setAddedCrops] = useState<Crop[]>([]);
 
-  // 品種追加
-  const addVariety = (pref: string, crop: string, item: AddedVariety) => {
+  // 品種追加（Firestoreにも保存）
+  const addVariety = async (pref: string, crop: string, item: AddedVariety) => {
     const key = makeKey(pref, crop);
     setAddedVarieties((prev) => ({
       ...prev,
       [key]: [...(prev[key] ?? []), item],
     }));
+
+    try {
+      await addDoc(collection(db, "varieties"), {
+        prefName: pref,
+        cropName: crop,
+        ...item,
+      });
+      console.log("品種をFirestoreに保存しました");
+    } catch (error) {
+      console.error("品種のFirestore保存に失敗:", error);
+    }
   };
 
-  // 作物追加
-  const addCrop = (
+  // 作物追加（Firestoreにも保存）
+  const addCrop = async (
     prefName: string,
     cropName: string,
     season: string,
@@ -67,13 +86,21 @@ function App() {
     };
 
     setAddedCrops((prev) => [...prev, newCrop]);
+
+    try {
+      await addDoc(collection(db, "crops"), newCrop);
+      console.log("作物をFirestoreに保存しました");
+    } catch (error) {
+      console.error("作物のFirestore保存に失敗:", error);
+    }
   };
 
+  // ローカル state 用：品種取得
   const getAdded = (pref: string, crop: string): AddedVariety[] => {
     return addedVarieties[makeKey(pref, crop)] ?? [];
   };
 
-  // FarmSearch に渡す際に最新の追加作物を返す
+  // ローカル state 用：FarmSearch に渡す作物
   const getAddedCropsAsCrop = (): Crop[] => {
     return addedCrops.map((c) => ({
       cropName: c.cropName,
@@ -91,7 +118,12 @@ function App() {
         <Route path="/" element={<TopPage />} />
         <Route
           path="/search"
-          element={<FarmSearch addedCrops={getAddedCropsAsCrop()} />}
+          element={
+            <FarmSearch
+              addedCrops={getAddedCropsAsCrop()}
+              deleteCrops={handleDeleteCrops}
+            />
+          }
         />
         <Route
           path="/detail/:cropName/:prefName"

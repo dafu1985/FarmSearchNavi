@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
 import {
   Box,
   Typography,
@@ -15,20 +14,35 @@ import {
   FormHelperText,
   Drawer,
   IconButton,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
-
 import CloseIcon from "@mui/icons-material/Close";
 import JapanMap from "./japanMap";
+import { db } from "./firebase/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
-// props で追加作物を受け取る
+// 🔹 JSON データの読み込み
+import cropsDataJsonRaw from "./data/cropsData.json";
+// 型変換: cropNameとprefNameを追加
+const cropsDataJson: Record<string, Crop[]> = Object.fromEntries(
+  Object.entries(cropsDataJsonRaw).map(([prefName, crops]) => [
+    prefName,
+    (crops as any[]).map((c) => ({
+      ...c,
+      cropName: c.name, // cropNameにnameを割り当て
+      prefName, // prefNameを追加
+    })),
+  ])
+);
+
 type Crop = {
+  id?: string;
   cropName: string;
   name: string;
   season: string;
   category: string;
-  prefName: string; // 都道府県
-  sowing?: { start: number; end: number };
-  harvest?: { start: number; end: number };
+  prefName: string;
   hasDetail?: boolean;
 };
 
@@ -36,20 +50,28 @@ type PulldownData = {
   prefectures: string[];
   seasons: string[];
   categories: string[];
-  months: number[];
 };
+
+// type Props = {
+//   addedCrops: Crop[];
+// };
 
 const itemsPerPage = 5;
+const USE_FIREBASE = process.env.REACT_APP_USE_FIREBASE === "true";
 
-type Props = {
+type FarmSearchProps = {
   addedCrops: Crop[];
+  deleteCrops: (ids: string[]) => Promise<void>; // App から渡される削除関数
 };
 
-function FarmSearch({ addedCrops }: Props) {
+function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const initialPref = location.state?.prefName || "";
-  const [selectedPref, setSelectedPref] = useState(initialPref);
+  const navigate = useNavigate();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedPref, setSelectedPref] = useState(
+    location.state?.prefName || ""
+  );
   const [selectedSeason, setSelectedSeason] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [results, setResults] = useState<Crop[]>([]);
@@ -59,28 +81,31 @@ function FarmSearch({ addedCrops }: Props) {
   const [pagedResults, setPagedResults] = useState<Crop[]>([]);
   const [displayStart, setDisplayStart] = useState(0);
   const [displayEnd, setDisplayEnd] = useState(0);
+
   const [pulldown, setPulldown] = useState<PulldownData>({
     prefectures: [],
     seasons: [],
     categories: [],
-    months: [],
   });
+
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
 
-  const navigate = useNavigate();
-
+  // 初期データ取得（プルダウン・都道府県名表示用）
   useEffect(() => {
-    fetch("/data/regionMap.json")
-      .then((res) => res.json())
-      .then((data) => setRegionMap(data));
-
     fetch("/data/pulldown.json")
       .then((res) => res.json())
       .then((data) => setPulldown(data));
+
+    fetch("/data/regionMap.json")
+      .then((res) => res.json())
+      .then((data) => setRegionMap(data));
   }, []);
 
+  // 都道府県クリック
   const handlePrefClick = (pref: string) => setSelectedPref(pref);
 
+  // 検索実行
+  // 検索実行
   const handleSearch = async () => {
     if (!selectedPref) {
       setPrefError(true);
@@ -90,29 +115,48 @@ function FarmSearch({ addedCrops }: Props) {
     }
 
     try {
-      const res = await fetch("/data/cropsData.json");
-      const data: Record<string, Crop[]> = await res.json();
+      let filtered: Crop[] = [];
 
-      // json からのデータ
-      let filtered = data[selectedPref] || [];
+      if (USE_FIREBASE) {
+        // 🔹 本番環境 (Firebase)
+        const q = query(
+          collection(db, "crops"),
+          where("prefName", "==", selectedPref)
+        );
+        const querySnapshot = await getDocs(q);
+        filtered = querySnapshot.docs.map((doc) => ({
+          id: doc.id, // Firestore の doc.id を使用
+          ...(doc.data() as Crop),
+        }));
+      } else {
+        // 🔹 開発環境 (JSON)
+        const jsonData = (cropsDataJson[selectedPref] || []).map((c) => ({
+          ...c,
+          cropName: c.name,
+          prefName: selectedPref,
+          id: `${selectedPref}_${c.name}_${c.season}_${c.category}`, // ユニーク ID
+        }));
 
-      // 新規追加分を同じ都道府県にマージ
-      const added = addedCrops.filter((c) => c.prefName === selectedPref);
-      console.log("マージされる追加作物:", added);
-      filtered = [...filtered, ...added];
+        // addedCrops をマージ
+        const merged = [...jsonData, ...addedCrops];
+        // id をキーにしてユニーク化
+        filtered = Array.from(
+          new Map(merged.map((item) => [item.id, item])).values()
+        );
+      }
 
-      // フィルタリング
-      if (selectedSeason)
+      // React 側でのフィルタ処理
+      if (selectedSeason) {
         filtered = filtered.filter((c) => c.season.includes(selectedSeason));
-
-      if (selectedCategory)
+      }
+      if (selectedCategory) {
         filtered = filtered.filter((c) => c.category === selectedCategory);
+      }
 
       setResults(filtered);
       setPrefError(false);
       setSearched(true);
       setCurrentPage(1);
-      console.log("マージされる追加作物:", added); // 確認用
     } catch (error) {
       console.error("作物データの取得に失敗しました", error);
       setResults([]);
@@ -121,6 +165,7 @@ function FarmSearch({ addedCrops }: Props) {
     }
   };
 
+  // クリア
   const handleClear = () => {
     setSelectedPref("");
     setSelectedSeason("");
@@ -131,6 +176,7 @@ function FarmSearch({ addedCrops }: Props) {
     setCurrentPage(1);
   };
 
+  // ページング処理
   useEffect(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(currentPage * itemsPerPage, results.length);
@@ -139,78 +185,85 @@ function FarmSearch({ addedCrops }: Props) {
     setDisplayEnd(endIndex);
   }, [results, currentPage]);
 
+  // addedCrops の変更を監視して検索結果に反映
+  // useEffect(() => {
+  //   if (!selectedPref) return;
+  //   const newAdded = addedCrops.filter(
+  //     (c) => c.prefName === selectedPref && !results.some((r) => r.id === c.id) // 🔹 id ベースで判定
+  //   );
+  //   if (newAdded.length > 0) {
+  //     setResults((prev) => [...prev, ...newAdded]);
+  //   }
+  // }, [addedCrops, selectedPref, results]);
+
   const totalPages = Math.ceil(results.length / itemsPerPage);
   const currentItemsCount = pagedResults.length;
 
-  useEffect(() => {
-    if (selectedPref) {
-      // 選択中の都道府県に追加された作物のみを取得
-      const added = addedCrops.filter((c) => c.prefName === selectedPref);
+  // 🔹 追加: チェックボックスの切り替え関数
+  const handleCheck = (id: string) => {
+    setSelectedIds(
+      (prev) =>
+        prev.includes(id)
+          ? prev.filter((i) => i !== id) // すでに含まれていれば外す
+          : [...prev, id] // 含まれていなければ追加
+    );
+  };
 
-      // JSON からのデータとマージ（元の results も保持する場合）
-      setResults((prev) => {
-        // prev の中で同じ作物が重複していたら除外
-        const filteredPrev = prev.filter(
-          (r) => !added.some((a) => a.name === r.name)
-        );
-        return [...filteredPrev, ...added];
-      });
+  // 🔹 削除ボタンの処理
+  const handleDelete = () => {
+    if (selectedIds.length === 0) return; // 選択なしなら何もしない
+    deleteCrops(selectedIds); // App.tsx から渡された削除関数を呼ぶ
+    setSelectedIds([]); // ローカル state をクリア
+  };
 
-      // ページングも更新
-      setCurrentPage(1);
-    }
-  }, [addedCrops, selectedPref]);
-
-  //画面描画
   return (
     <Box sx={{ p: 4, flexDirection: { xs: "column", md: "row" } }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         農作物検索
       </Typography>
+
       <Button variant="outlined" onClick={() => setOpen(true)}>
         Map
       </Button>
 
+      {/* 地図 Drawer */}
       <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
-        <div
-          style={{
+        <Box
+          sx={{
             width: "40vw",
-            padding: 16,
+            p: 2,
             height: "100vh",
-            boxSizing: "border-box",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <div
-            style={{
-              width: "100%",
+          <Box
+            sx={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
             }}
           >
-            <h3>都道府県検索</h3>
+            <Typography variant="h6">都道府県検索</Typography>
             <IconButton onClick={() => setOpen(false)}>
               <CloseIcon />
             </IconButton>
-          </div>
-
-          <div style={{ marginTop: 16, flexGrow: 1 }}>
+          </Box>
+          <Box sx={{ mt: 2, flexGrow: 1 }}>
             <JapanMap
               selectedPref={selectedPref}
               onPrefClick={handlePrefClick}
             />
-          </div>
-        </div>
+          </Box>
+        </Box>
       </Drawer>
 
+      {/* 検索フォーム */}
       <Card sx={{ p: 3, mb: 3, backgroundColor: "#e8f5e9" }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             検索条件
           </Typography>
-
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
@@ -276,7 +329,11 @@ function FarmSearch({ addedCrops }: Props) {
         </CardContent>
       </Card>
 
+      {/* 検索・クリアボタン */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}>
+        <Button variant="outlined" onClick={() => navigate(-1)}>
+          戻る
+        </Button>
         <Button variant="outlined" color="secondary" onClick={handleClear}>
           クリア
         </Button>
@@ -285,16 +342,16 @@ function FarmSearch({ addedCrops }: Props) {
         </Button>
       </Box>
 
+      {/* 検索結果 */}
       {searched && (
         <Card sx={{ p: 3, mb: 3, backgroundColor: "#e8f5e9" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
             <Typography variant="h6">検索結果</Typography>
             {results.length > 0 && (
-              <Typography variant="subtitle1">
-                {`${currentItemsCount}件表示中 (${displayStart}〜${displayEnd}件中)`}
-              </Typography>
+              <Typography variant="subtitle1">{`${currentItemsCount}件表示中 (${displayStart}〜${displayEnd}件中)`}</Typography>
             )}
           </Box>
+          {/* 新規作成ボタン */}
           <Box
             sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 2 }}
           >
@@ -302,69 +359,98 @@ function FarmSearch({ addedCrops }: Props) {
               variant="contained"
               size="medium"
               onClick={() =>
-                navigate("/newCreate", {
-                  state: { prefName: selectedPref },
-                })
+                navigate("/newCreate", { state: { prefName: selectedPref } })
               }
-              sx={{ position: "relative", top: "-50px" }}
             >
               新規作成
             </Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={selectedIds.length === 0} // 選択がないと無効
+              onClick={handleDelete}
+            >
+              削除
+            </Button>
           </Box>
+          {/* 検索結果一覧*/}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {pagedResults.map((c) => (
+              <Grid
+                item
+                xs={12}
+                md={6}
+                key={`${c.prefName}_${c.cropName}_${c.season}_${c.category}`}
+              >
+                <Card>
+                  <CardContent>
+                    {/* ✅ チェックボックスを追加 */}
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          // c.id が存在しない場合はユニークな ID を生成
+                          checked={selectedIds.includes(
+                            c.id ??
+                              `${c.prefName}_${c.cropName}_${c.season}_${c.category}`
+                          )}
+                          onChange={() =>
+                            handleCheck(
+                              c.id ??
+                                `${c.prefName}_${c.cropName}_${c.season}_${c.category}`
+                            )
+                          }
+                        />
+                      }
+                      label={`${c.prefName} - ${c.name}`}
+                    />
 
-          {pagedResults.map((crop, i) => (
-            <Card key={i} sx={{ my: 1, p: 2, backgroundColor: "#f1f8e9" }}>
-              <CardContent>
-                <Typography variant="h6">{crop.name}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {crop.season ?? "-"}・{crop.category}
-                </Typography>
-                <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                  <Button
-                    variant="outlined"
-                    size="medium"
-                    disabled={!crop.hasDetail}
-                    onClick={() =>
-                      navigate(`/detail/${crop.name}/${selectedPref}`)
-                    }
-                  >
-                    詳細
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="medium"
-                    disabled={!!crop.hasDetail}
-                    onClick={() =>
-                      navigate("/newCreate", {
-                        state: { cropName: crop.name, prefName: selectedPref },
-                      })
-                    }
-                  >
-                    新規作成
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
+                    <Typography fontWeight="bold">{c.name}</Typography>
+                    <Typography>季節: {c.season}</Typography>
+                    <Typography>カテゴリ: {c.category}</Typography>
+                    <Typography>都道府県: {c.prefName}</Typography>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="medium"
+                        disabled={!c.hasDetail}
+                        onClick={() =>
+                          navigate(`/detail/${c.name}/${selectedPref}`)
+                        }
+                      >
+                        詳細
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="medium"
+                        disabled={!!c.hasDetail}
+                        onClick={() =>
+                          navigate("/newCreate", {
+                            state: { cropName: c.name, prefName: selectedPref },
+                          })
+                        }
+                      >
+                        新規作成
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
 
-          {totalPages > 1 && (
+          {/* ページ切替 */}
+          {results.length > itemsPerPage && (
             <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                mt: 1,
-                justifyContent: "flex-end",
-              }}
+              sx={{ display: "flex", justifyContent: "center", mt: 2, gap: 1 }}
             >
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+                (num) => (
                   <Button
-                    key={page}
-                    variant={currentPage === page ? "contained" : "outlined"}
-                    size="medium"
-                    onClick={() => setCurrentPage(page)}
+                    key={num}
+                    variant={num === currentPage ? "contained" : "outlined"}
+                    onClick={() => setCurrentPage(num)}
                   >
-                    {page}
+                    {num}
                   </Button>
                 )
               )}
