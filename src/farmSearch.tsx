@@ -13,6 +13,9 @@ import {
   CardContent,
   FormHelperText,
   Drawer,
+  Dialog,
+  DialogTitle,
+  DialogActions,
   IconButton,
   Checkbox,
   FormControlLabel,
@@ -20,7 +23,14 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import JapanMap from "./japanMap";
 import { db } from "./firebase/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 
 // 🔹 JSON データの読み込み
 import cropsDataJsonRaw from "./data/cropsData.json";
@@ -89,6 +99,7 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
   });
 
   const [regionMap, setRegionMap] = useState<Record<string, string>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false); // 削除確認ダイアログ
 
   // 初期データ取得（プルダウン・都道府県名表示用）
   useEffect(() => {
@@ -210,10 +221,43 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
   };
 
   // 🔹 削除ボタンの処理
-  const handleDelete = () => {
-    if (selectedIds.length === 0) return; // 選択なしなら何もしない
-    deleteCrops(selectedIds); // App.tsx から渡された削除関数を呼ぶ
-    setSelectedIds([]); // ローカル state をクリア
+  // 共通のユニークキーを生成する関数
+  const getCropKey = (crop: any) =>
+    crop.id ??
+    `${crop.prefName}_${crop.cropName}_${crop.season}_${crop.category}`;
+
+  const executeDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    if (process.env.REACT_APP_USE_FIREBASE === "true") {
+      // Firestore から削除
+      try {
+        for (const id of selectedIds) {
+          await deleteDoc(doc(collection(db, "crops"), id));
+        }
+        // ローカル state から削除
+        setResults((prev) =>
+          prev.filter((c) => !selectedIds.includes(getCropKey(c)))
+        );
+        setSelectedIds([]);
+        console.log("選択した作物を削除しました");
+      } catch (error) {
+        console.error("Firestore削除エラー:", error);
+      }
+    } else {
+      // JSON 開発環境用の削除
+      setResults((prev) =>
+        prev.filter((c) => !selectedIds.includes(getCropKey(c)))
+      );
+      setSelectedIds([]);
+      console.log("選択した作物をローカルから削除しました");
+    }
+    setConfirmOpen(false); // ダイアログを閉じる
+  };
+  // ダイアログを開くだけ
+  const handleDeleteClick = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmOpen(true);
   };
 
   return (
@@ -368,7 +412,7 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
               variant="contained"
               color="error"
               disabled={selectedIds.length === 0} // 選択がないと無効
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
             >
               削除
             </Button>
@@ -456,6 +500,18 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
               )}
             </Box>
           )}
+          {/* 削除確認ダイアログ */}
+          <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+            <DialogTitle>削除確認</DialogTitle>
+            <DialogActions>
+              <Button onClick={() => setConfirmOpen(false)} color="secondary">
+                キャンセル
+              </Button>
+              <Button onClick={executeDelete} color="error" variant="contained">
+                削除
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Card>
       )}
     </Box>

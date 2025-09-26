@@ -264,7 +264,7 @@ function DetailFarm({ getAdded }: DetailFarmProps) {
           </Button>
         </Box>
 
-        {/* 登録確認ダイアログ */}
+        {/* 確認ダイアログ */}
         <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
           <DialogTitle>戻り先選択</DialogTitle>
           <DialogActions>
