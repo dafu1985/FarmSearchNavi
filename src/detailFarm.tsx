@@ -10,7 +10,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Dialog,
-  DialogContent,
   DialogTitle,
   DialogActions,
 } from "@mui/material";
