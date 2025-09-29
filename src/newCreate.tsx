@@ -72,14 +72,16 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
       setErrorMessage("作物名を入力してください");
       return;
     }
-    if (
-      !formData.variety ||
-      !formData.character ||
-      !formData.nursery ||
-      !formData.harvest
-    ) {
-      setErrorMessage("空白の項目があるため登録できません");
-      return;
+    if (existingCropName) {
+      if (
+        !formData.variety ||
+        !formData.character ||
+        !formData.nursery ||
+        !formData.harvest
+      ) {
+        setErrorMessage("空白の項目があるため登録できません");
+        return;
+      }
     }
     setErrorMessage("");
     setConfirmOpen(true);
@@ -87,6 +89,7 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
 
   const handleRegister = () => {
     const cropNameToUse = existingCropName || cropNameInput;
+
     if (!cropNameToUse) {
       setErrorMessage("作物名を入力してください");
       return;
@@ -95,19 +98,23 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
       setErrorMessage("都道府県を選択してください");
       return;
     }
-    const newVariety: AddedVariety = {
-      id: Date.now(),
-      variety: formData.variety,
-      character: formData.character,
-      sowing: formData.sowing,
-      nursery: formData.nursery,
-      harvest: formData.harvest,
-    };
 
-    addVariety(prefName, cropNameToUse, newVariety);
+    if (existingCropName) {
+      // 詳細画面からの品種登録
+      const newVariety: AddedVariety = {
+        id: Date.now(),
+        variety: formData.variety,
+        character: formData.character,
+        sowing: formData.sowing,
+        nursery: formData.nursery,
+        harvest: formData.harvest,
+      };
+      addVariety(prefName, cropNameToUse, newVariety);
+    } else {
+      // 作物新規作成の場合は品種登録は行わない
+      addCrop(prefName, cropNameToUse, season, category);
+    }
 
-    // 作物自体も追加
-    addCrop(prefName, cropNameToUse, season, category);
     setConfirmOpen(false);
     setSuccessPopupOpen(true);
   };
@@ -166,86 +173,85 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
       >
         <CardContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
+            {/* 作物フォーム：既存作物がない場合のみ */}
             {!existingCropName && (
-              <TextField
-                label="作物名"
-                placeholder="例: 米"
-                value={cropNameInput}
-                onChange={(e) => setCropNameInput(e.target.value)}
-                fullWidth
-              />
-            )}
-            {existingCropName && (
-              <Typography variant="h5" gutterBottom>
-                作物名: {existingCropName}
-              </Typography>
-            )}
-            {!existingCropName && (
-              <TextField
-                select
-                label="季節"
-                value={season}
-                onChange={(e) => setSeason(e.target.value)}
-                fullWidth
-              >
-                {seasonOptions.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <>
+                <TextField
+                  label="作物名"
+                  placeholder="例: 米"
+                  value={cropNameInput}
+                  onChange={(e) => setCropNameInput(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  select
+                  label="季節"
+                  value={season}
+                  onChange={(e) => setSeason(e.target.value)}
+                  fullWidth
+                >
+                  {seasonOptions.map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  label="分類"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  fullWidth
+                >
+                  {categoryOptions.map((c) => (
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </>
             )}
 
-            {!existingCropName && (
-              <TextField
-                select
-                label="分類"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                fullWidth
-              >
-                {categoryOptions.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </TextField>
+            {/* 品種フォーム：詳細画面からの遷移時のみ表示 */}
+            {existingCropName && (
+              <>
+                <TextField
+                  label="品種名"
+                  name="variety"
+                  value={formData.variety}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="品種の特徴"
+                  name="character"
+                  value={formData.character}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="種植え時期"
+                  name="sowing"
+                  value={formData.sowing}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="育苗方法"
+                  name="nursery"
+                  value={formData.nursery}
+                  onChange={handleChange}
+                  fullWidth
+                />
+                <TextField
+                  label="収穫時期"
+                  name="harvest"
+                  value={formData.harvest}
+                  onChange={handleChange}
+                  fullWidth
+                />
+              </>
             )}
-            <TextField
-              label="品種名"
-              name="variety"
-              value={formData.variety}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="品種の特徴"
-              name="character"
-              value={formData.character}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="種植え時期"
-              name="sowing"
-              value={formData.sowing}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="育苗方法"
-              name="nursery"
-              value={formData.nursery}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-              label="収穫時期"
-              name="harvest"
-              value={formData.harvest}
-              onChange={handleChange}
-              fullWidth
-            />
           </Box>
 
           {errorMessage && (
@@ -281,13 +287,24 @@ function NewCreate({ addVariety, addCrop }: NewCreateProps) {
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>登録確認</DialogTitle>
         <DialogContent>
-          <Typography>作物名: {existingCropName || cropNameInput}</Typography>
-
-          <Typography>品種名: {formData.variety}</Typography>
-          <Typography>品種の特徴: {formData.character}</Typography>
-          <Typography>種植え時期: {formData.sowing}</Typography>
-          <Typography>育苗方法: {formData.nursery}</Typography>
-          <Typography>収穫時期: {formData.harvest}</Typography>
+          {existingCropName ? (
+            // 品種登録用
+            <>
+              <Typography>作物名: {existingCropName}</Typography>
+              <Typography>品種名: {formData.variety}</Typography>
+              <Typography>品種の特徴: {formData.character}</Typography>
+              <Typography>種植え時期: {formData.sowing}</Typography>
+              <Typography>育苗方法: {formData.nursery}</Typography>
+              <Typography>収穫時期: {formData.harvest}</Typography>
+            </>
+          ) : (
+            // 作物登録用
+            <>
+              <Typography>作物名: {cropNameInput}</Typography>
+              <Typography>季節: {season}</Typography>
+              <Typography>カテゴリ: {category}</Typography>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)} color="secondary">

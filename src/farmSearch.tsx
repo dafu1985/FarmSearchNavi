@@ -116,8 +116,8 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
   const handlePrefClick = (pref: string) => setSelectedPref(pref);
 
   // 検索実行
-  // 検索実行
   const handleSearch = async () => {
+    // 都道府県が未選択なら検索できない
     if (!selectedPref) {
       setPrefError(true);
       setResults([]);
@@ -129,42 +129,54 @@ function FarmSearch({ addedCrops, deleteCrops }: FarmSearchProps) {
       let filtered: Crop[] = [];
 
       if (USE_FIREBASE) {
-        // 🔹 本番環境 (Firebase)
+        // 🔹 本番環境（Firebase）
+        // 作物用コレクション "crops" から都道府県に一致するデータを取得
         const q = query(
           collection(db, "crops"),
           where("prefName", "==", selectedPref)
         );
         const querySnapshot = await getDocs(q);
+
         filtered = querySnapshot.docs.map((doc) => ({
-          id: doc.id, // Firestore の doc.id を使用
+          id: doc.id, // Firestore の doc.id をユニークIDとして使用
           ...(doc.data() as Crop),
         }));
       } else {
-        // 🔹 開発環境 (JSON)
+        // 🔹 開発環境（JSON + 追加データ）
         const jsonData = (cropsDataJson[selectedPref] || []).map((c) => ({
           ...c,
-          cropName: c.name,
+          cropName: c.name, // name を cropName にセット
           prefName: selectedPref,
-          id: `${selectedPref}_${c.name}_${c.season}_${c.category}`, // ユニーク ID
+          id: `${selectedPref}_${c.name}_${c.season}_${c.category}`, // ユニークID生成
         }));
 
-        // addedCrops をマージ
-        const merged = [...jsonData, ...addedCrops];
-        // id をキーにしてユニーク化
+        // addedCrops をマージするが、詳細画面で作成した品種は除外
+        const merged = [
+          ...jsonData,
+          ...addedCrops.filter((c) => c.season && c.category), // 作物だけを検索対象に
+        ];
+
+        // id をキーにユニーク化
         filtered = Array.from(
           new Map(merged.map((item) => [item.id, item])).values()
         );
       }
 
-      // React 側でのフィルタ処理
-      if (selectedSeason) {
-        filtered = filtered.filter((c) => c.season.includes(selectedSeason));
-      }
-      if (selectedCategory) {
-        filtered = filtered.filter((c) => c.category === selectedCategory);
-      }
+      // // 🔹 React 側の追加フィルタ（季節・カテゴリ）
+      // if (selectedSeason) {
+      //   filtered = filtered.filter((c) => c.season.includes(selectedSeason));
+      // }
+      // if (selectedCategory) {
+      //   filtered = filtered.filter((c) => c.category === selectedCategory);
+      // }
 
+      // // 🔹 作物のみを検索結果に反映（品種は除外）
+      // const onlyCrops = filtered.filter((item) => item.season && item.category);
+
+      // 検索結果にセット
       setResults(filtered);
+
+      // エラーリセットと検索済みフラグ
       setPrefError(false);
       setSearched(true);
       setCurrentPage(1);
