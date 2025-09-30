@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "./firebase/firebase"; // Firebase 利用フラグと db
@@ -8,7 +8,7 @@ import TopPage from "./topPage";
 import FarmSearch from "./farmSearch";
 import DetailFarm from "./detailFarm";
 import NewCreate from "./newCreate";
-// import { seedCrops } from "./seedCrops";
+import Header from "./header";
 
 export type AddedVariety = {
   id: number;
@@ -33,10 +33,12 @@ export type Crop = {
 // 作物キー生成（ローカルstate用）
 const makeKey = (pref: string, crop: string) => `${pref}__${crop}`;
 const handleDeleteCrops = async (ids: string[]) => {
-  // Firestore削除 or ローカル配列更新処理を書く
   console.log("削除対象ID:", ids);
 };
+
 function App() {
+  const location = useLocation(); // 現在のパスを取得
+
   useEffect(() => {}, []);
 
   const [addedVarieties, setAddedVarieties] = useState<
@@ -114,6 +116,9 @@ function App() {
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Topページ以外ではHeaderを表示 */}
+      {location.pathname !== "/" && <Header />}
+
       <Routes>
         <Route path="/" element={<TopPage />} />
         <Route
